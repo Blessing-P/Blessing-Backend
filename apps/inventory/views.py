@@ -89,7 +89,7 @@ def _restore_bundle_stock(bundle):
 
 
 class ItemViewSet(viewsets.ModelViewSet):
-    queryset = Item.objects.all()
+    queryset = Item.objects.all().order_by('-created_at')
     serializer_class = ItemSerializer
 
     def create(self, request, *args, **kwargs):
