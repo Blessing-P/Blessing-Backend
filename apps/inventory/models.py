@@ -24,7 +24,7 @@ class Item(models.Model):
         null=True,
     )
     is_activate    = models.BooleanField(default=True)
-    created_at     = models.DateField(auto_now_add=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
 
     def adjust_stock(self, delta, reason='bundle adjustment', reference_table='', reference_id=None):
         """Ajusta el stock del item y registra un movimiento de inventario."""
