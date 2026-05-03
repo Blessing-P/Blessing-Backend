@@ -12,6 +12,8 @@ from apps.inventory.models import Item
 
 
 class SaleProductListView(APIView):
+    queryset = Item.objects.all().order_by('-created_at')
+
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -19,17 +21,18 @@ class SaleProductListView(APIView):
         items = Item.objects.filter(
             is_activate=True,
             type__in=['product', 'bundle'],
-        )
+        ).order_by('-created_at') 
 
         data = [
             {
                 'id':            item.id,
                 'name':          item.name,
                 'stock':         int(item.stock),
-                'stock_minimum': int(item.min_stock),
+                'min_stock': int(item.min_stock),
                 'sell_price':    float(item.sell_price),
                 'type':          item.type,       # 'product' | 'bundle' — tal cual está en la BD
                 'image': request.build_absolute_uri(item.image.url) if item.image else None,
+                'category':      item.category
 
             }
             for item in items
