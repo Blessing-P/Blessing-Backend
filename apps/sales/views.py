@@ -9,11 +9,10 @@ from django.db import transaction
 from .models import Sale, SaleItem
 from .serializers import SaleCreateSerializer, SaleOutputSerializer
 from apps.inventory.models import Item
+from apps.customers.models import Customer  # ← nuevo import
 
 
 class SaleProductListView(APIView):
-    queryset = Item.objects.all().order_by('-created_at')
-
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -21,19 +20,18 @@ class SaleProductListView(APIView):
         items = Item.objects.filter(
             is_activate=True,
             type__in=['product', 'bundle'],
-        ).order_by('-created_at') 
+        ).order_by('-created_at')
 
         data = [
             {
-                'id':            item.id,
-                'name':          item.name,
-                'stock':         int(item.stock),
-                'min_stock': int(item.min_stock),
-                'sell_price':    float(item.sell_price),
-                'type':          item.type,       # 'product' | 'bundle' — tal cual está en la BD
-                'image': request.build_absolute_uri(item.image.url) if item.image else None,
-                'category':      item.category
-
+                'id':         item.id,
+                'name':       item.name,
+                'stock':      int(item.stock),
+                'min_stock':  int(item.min_stock),
+                'sell_price': float(item.sell_price),
+                'type':       item.type,
+                'image':      request.build_absolute_uri(item.image.url) if item.image else None,
+                'category':   item.category,
             }
             for item in items
         ]
@@ -57,23 +55,43 @@ class SaleListCreateView(APIView):
 
         data = serializer.validated_data
 
-        try:                                    # ← agrega try/except
+        try:
             with transaction.atomic():
+
+                # ── Cliente registrado (opcional) ──────────────────────────
+                customer = None
+                customer_id = data.get('customer_id')
+                if customer_id:
+                    try:
+                        customer = Customer.objects.get(id=customer_id)
+                    except Customer.DoesNotExist:
+                        return Response(
+                            {'detail': 'El cliente seleccionado no existe.'},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                # ── Crear cabezal de venta ─────────────────────────────────
                 sale = Sale.objects.create(
-                    customer_name  = data['customer_name'],
-                    telephone      = data['telephone'],
+                    # cliente
+                    customer       = customer,
+                    customer_name  = data.get('customer_name') or '',
+                    telephone      = data.get('telephone') or '',
                     nit            = data.get('nit') or '',
                     address        = data.get('address') or '',
                     contact_method = data.get('contact_method') or '',
+                    # nuevos campos
+                    payment_method = data.get('payment_method', 'efectivo'),
+                    notes          = data.get('notes') or '',
                     total          = data['total'],
                 )
 
+                # ── Crear líneas de detalle ────────────────────────────────
                 for item_data in data['items']:
                     item = Item.objects.select_for_update().get(id=item_data['item_id'])
 
                     if item.stock < item_data['quantity']:
                         return Response(
-                            {'detail': f'Stock insuficiente para {item.name}. Disponible: {item.stock}'},
+                            {'detail': f'Stock insuficiente para "{item.name}". Disponible: {item.stock}'},
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
@@ -94,7 +112,7 @@ class SaleListCreateView(APIView):
             )
 
         except Exception as e:
-            print('ERROR EN POST SALE:', str(e))   # ← imprime en terminal Django
+            print('ERROR EN POST SALE:', str(e))
             return Response(
                 {'detail': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

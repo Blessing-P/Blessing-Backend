@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.audit',
     'apps.inventory',
     'apps.commerce',
+    'apps.customers',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'

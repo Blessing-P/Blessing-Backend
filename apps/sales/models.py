@@ -1,29 +1,67 @@
 # sales/models.py
 
 from django.db import models
-from apps.inventory.models import Item  # ajusta el import según tu app
+from apps.inventory.models import Item
+from apps.customers.models import Customer  # ajusta según tu estructura de apps
 
 
 class Sale(models.Model):
-    # Datos del cliente
-    customer_name   = models.CharField(max_length=200)
-    telephone       = models.CharField(max_length=20)
+
+    PAYMENT_METHOD_CHOICES = [
+        ('efectivo',       'Efectivo'),
+        ('transferencia',  'Transferencia'),
+        ('tarjeta',        'Tarjeta'),
+    ]
+
+    CONTACT_METHOD_CHOICES = [
+        ('whatsapp', 'WhatsApp'),
+        ('tienda',   'En tienda'),
+    ]
+
+    # Cliente (opcional: puede ser una venta sin cliente registrado)
+    customer        = models.ForeignKey(
+                        Customer,
+                        on_delete=models.SET_NULL,
+                        null=True,
+                        blank=True,
+                        related_name='sales'
+                      )
+
+    # Datos manuales por si no se selecciona un cliente registrado
+    customer_name   = models.CharField(max_length=200, blank=True)
+    telephone       = models.CharField(max_length=20, blank=True, null=True)
     nit             = models.CharField(max_length=20, blank=True, null=True)
     address         = models.CharField(max_length=300, blank=True, null=True)
     contact_method  = models.CharField(
-        max_length=20,
-        choices=[('whatsapp', 'WhatsApp'), ('tienda', 'En tienda')],
-        blank=True,
-        null=True,
-    )
+                        max_length=20,
+                        choices=CONTACT_METHOD_CHOICES,
+                        blank=True,
+                        null=True
+                      )
 
-    # Totales
+    # Cabezal
+    payment_method  = models.CharField(
+                        max_length=20,
+                        choices=PAYMENT_METHOD_CHOICES,
+                        default='efectivo'
+                      )
+    notes           = models.TextField(blank=True, null=True)
     total           = models.DecimalField(max_digits=10, decimal_places=2)
-
     created_at      = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering         = ['-created_at']
+        verbose_name     = 'Venta'
+        verbose_name_plural = 'Ventas'
+
+    def get_customer_name(self):
+        """Retorna el nombre del cliente registrado o el ingresado manualmente."""
+        if self.customer:
+            return self.customer.name
+        return self.customer_name or 'Cliente general'
+
     def __str__(self):
-        return f'Venta #{self.id} - {self.customer_name}'
+        return f'Venta #{self.id} - {self.get_customer_name()}'
 
 
 class SaleItem(models.Model):
@@ -36,19 +74,4 @@ class SaleItem(models.Model):
     subtotal        = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        # Access product safely: product may be None during admin object creation/logging
-        # Use product_id to avoid extra DB lookup when FK isn't set yet
-        if not getattr(self, 'product_id', None):
-            return f'{self.quantity}x <no product>'
-
-        # product exists (or at least product_id does). Try to get a readable name
-        try:
-            # If Product stores its name on a related Item, adapt accordingly
-            name = getattr(self.product, 'name', None) or getattr(getattr(self.product, 'item', None), 'name', None)
-        except Exception:
-            name = None
-
-        if not name:
-            name = '<no product>'
-
-        return f'{self.quantity}x {name}'
+        return f'{self.quantity}x {self.product.name} (Venta #{self.sale_id})'
