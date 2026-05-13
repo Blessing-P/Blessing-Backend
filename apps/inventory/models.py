@@ -12,8 +12,20 @@ class Item(models.Model):
 
     name           = models.CharField(max_length=150)
     type           = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    category       = models.CharField(max_length=100)
-    unit           = models.CharField(max_length=20)
+    category = models.ForeignKey(
+        'catalog.Category',       
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='items',
+    )
+    unit = models.ForeignKey(
+        'catalog.Unit',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='items',
+    )
     stock          = models.IntegerField(default=0)          
     min_stock      = models.IntegerField(default=0)           
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  
