@@ -125,7 +125,8 @@ class PurchaseItemListView(APIView):
                 'id':             item.id,
                 'name':           item.name,
                 'type':           item.type,
-                'unit':           item.unit,
+                'unit': item.unit.name if item.unit else None,
+
                 'stock':          int(item.stock),
                 'purchase_price': float(item.purchase_price),
                 'image': request.build_absolute_uri(item.image.url) if item.image else None,

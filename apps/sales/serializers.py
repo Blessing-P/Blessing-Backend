@@ -21,17 +21,41 @@ class SaleCreateSerializer(serializers.Serializer):
     customer_id    = serializers.IntegerField(required=False, allow_null=True)
 
     # Datos manuales (opcionales si se usa cliente registrado)
-    customer_name  = serializers.CharField(max_length=200, required=False, allow_blank=True)
-    telephone      = serializers.CharField(max_length=20,  required=False, allow_blank=True, allow_null=True)
+    customer_name = serializers.CharField(
+    max_length=200,
+    required=True,
+    allow_blank=False,
+    error_messages={
+        'required': 'El nombre es obligatorio.',
+        'blank': 'El nombre no puede ir vacío.',
+    }
+)
+    telephone = serializers.CharField(
+    max_length=20,
+    required=True,
+    allow_blank=False,
+    allow_null=False,
+    error_messages={
+        'required': 'El teléfono es obligatorio.',
+        'blank': 'El teléfono no puede ir vacío.',
+        'null': 'El teléfono no puede ser null.',
+    }
+)
     nit            = serializers.CharField(max_length=20,  required=False, allow_blank=True, allow_null=True)
     address        = serializers.CharField(max_length=300, required=False, allow_blank=True, allow_null=True)
     contact_method = serializers.CharField(max_length=20,  required=False, allow_blank=True, allow_null=True)
 
     # Nuevos campos del cabezal
     payment_method = serializers.ChoiceField(
-                        choices=['efectivo', 'transferencia', 'tarjeta'],
-                        default='efectivo',
-                     )
+    choices=['efectivo', 'transferencia', 'tarjeta'],
+    required=True,
+    allow_blank=False,
+    error_messages={
+        'required': 'El método de pago es obligatorio.',
+        'blank': 'El método de pago no puede ir vacío.',
+        'invalid_choice': 'El método de pago es obligatorio.'
+    }
+)
     notes          = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     total          = serializers.DecimalField(max_digits=10, decimal_places=2)

@@ -31,7 +31,7 @@ class SaleProductListView(APIView):
                 'sell_price': float(item.sell_price),
                 'type':       item.type,
                 'image':      request.build_absolute_uri(item.image.url) if item.image else None,
-                'category':   item.category,
+                'category_name': item.category.name if item.category else None,
             }
             for item in items
         ]
