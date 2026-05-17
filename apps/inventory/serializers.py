@@ -1,11 +1,14 @@
 from rest_framework import serializers
 from .models import Item, Product, Supply, Bundle
 from decimal import Decimal
-
+from PIL import Image
+from io import BytesIO
 
 class ItemSerializer(serializers.ModelSerializer):
 
-    image = serializers.ImageField(use_url=True, required=False, allow_null=True)
+    image = serializers.ImageField(use_url=True, required=False, allow_null=True, error_messages={
+            "invalid_image": "El archivo debe ser una imagen válida."
+        })
     description = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
     unit_name     = serializers.CharField(source='unit.name',     read_only=True)
