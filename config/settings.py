@@ -27,14 +27,14 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 # Application definition
 
 INSTALLED_APPS = [
-    'cloudinary',
-    'cloudinary_storage',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary',
+    'cloudinary_storage',
     'rest_framework',
     'corsheaders',
     'apps.sales',
@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     'apps.customers',
     'apps.catalog',
 ]
-
 AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
