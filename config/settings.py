@@ -166,7 +166,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',   # Vite dev server
+    "http://localhost:5173",    # dev web
+    "http://tauri.localhost",   # app Tauri instalada
+    "tauri://localhost",        # Tauri en algunos sistemas
 ]
 
 CORS_ALLOW_CREDENTIALS = True
