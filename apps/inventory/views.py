@@ -89,7 +89,11 @@ def _restore_bundle_stock(bundle):
 
 
 class ItemViewSet(viewsets.ModelViewSet):
-    queryset = Item.objects.all().order_by('-created_at')
+    queryset = (
+        Item.objects
+        .select_related('category', 'unit', 'product', 'supply', 'bundle')
+        .order_by('-created_at')
+    )
     serializer_class = ItemSerializer
 
     def create(self, request, *args, **kwargs):
@@ -228,6 +232,16 @@ class ItemViewSet(viewsets.ModelViewSet):
         if SaleItem.objects.filter(product=item).exists():
             return Response(
                 {'error': 'No se puede eliminar este producto porque tiene historial de ventas.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        # Protección: no eliminar si es componente de algún bundle
+        if item.used_in_bundles.exists():
+            bundles = item.used_in_bundles.values_list(
+                'bundle__item__name', flat=True
+            )
+            nombres = ', '.join(bundles)
+            return Response(
+                {'error': f'No se puede eliminar "{item.name}" porque es parte de: {nombres}.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
