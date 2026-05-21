@@ -20,7 +20,7 @@ class SaleProductListView(APIView):
         items = Item.objects.filter(
             is_activate=True,
             type__in=['product', 'bundle'],
-        ).order_by('-created_at')
+        ).select_related('category').order_by('-created_at')  # ← agregar
 
         data = [
             {
@@ -43,8 +43,14 @@ class SaleListCreateView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Devuelve todas las ventas ordenadas por más reciente."""
-        sales = Sale.objects.prefetch_related('items__product').order_by('-created_at')
+        sales = (
+            Sale.objects
+            .select_related('customer')                          # nombre del cliente registrado
+            .prefetch_related(
+                'items__product__bundle__details__item'          # componentes de bundles
+            )
+            .order_by('-created_at')
+        )
         serializer = SaleOutputSerializer(sales, many=True)
         return Response(serializer.data)
 
