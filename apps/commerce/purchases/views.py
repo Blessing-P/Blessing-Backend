@@ -115,21 +115,22 @@ class SupplierDetailView(APIView):
 # ── Purchase ───────────────────────────────────────────────────────────────────
 
 class PurchaseItemListView(APIView):
-    permission_classes = [AllowAny]
-
     def get(self, request):
-        """Devuelve ítems activos disponibles para agregar a una compra."""
-        items = Item.objects.filter(is_activate=True).order_by('name')
+        items = (
+            Item.objects
+            .filter(is_activate=True)
+            .select_related('unit')        # ← fix
+            .order_by('name')
+        )
         data = [
             {
                 'id':             item.id,
                 'name':           item.name,
                 'type':           item.type,
-                'unit': item.unit.name if item.unit else None,
-
+                'unit':           item.unit.name if item.unit else None,
                 'stock':          int(item.stock),
                 'purchase_price': float(item.purchase_price),
-                'image': request.build_absolute_uri(item.image.url) if item.image else None,
+                'image':          request.build_absolute_uri(item.image.url) if item.image else None,
             }
             for item in items
         ]
