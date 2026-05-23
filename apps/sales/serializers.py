@@ -22,44 +22,42 @@ class SaleCreateSerializer(serializers.Serializer):
 
     # Datos manuales (opcionales si se usa cliente registrado)
     customer_name = serializers.CharField(
-    max_length=200,
-    required=True,
-    allow_blank=False,
-    error_messages={
-        'required': 'El nombre es obligatorio.',
-        'blank': 'El nombre no puede ir vacío.',
-    }
-)
+        max_length=200,
+        required=True,
+        allow_blank=False,
+        error_messages={
+            'required': 'El nombre es obligatorio.',
+            'blank': 'El nombre no puede ir vacío.',
+        }
+    )
     telephone = serializers.CharField(
-    max_length=20,
-    required=True,
-    allow_blank=False,
-    allow_null=False,
-    error_messages={
-        'required': 'El teléfono es obligatorio.',
-        'blank': 'El teléfono no puede ir vacío.',
-        'null': 'El teléfono no puede ser null.',
-    }
-)
+        max_length=20,
+        required=True,
+        allow_blank=False,
+        allow_null=False,
+        error_messages={
+            'required': 'El teléfono es obligatorio.',
+            'blank': 'El teléfono no puede ir vacío.',
+            'null': 'El teléfono no puede ser null.',
+        }
+    )
     nit            = serializers.CharField(max_length=20,  required=False, allow_blank=True, allow_null=True)
     address        = serializers.CharField(max_length=300, required=False, allow_blank=True, allow_null=True)
     contact_method = serializers.CharField(max_length=20,  required=False, allow_blank=True, allow_null=True)
 
-    # Nuevos campos del cabezal
     payment_method = serializers.ChoiceField(
-    choices=['efectivo', 'transferencia', 'tarjeta'],
-    required=True,
-    allow_blank=False,
-    error_messages={
-        'required': 'El método de pago es obligatorio.',
-        'blank': 'El método de pago no puede ir vacío.',
-        'invalid_choice': 'El método de pago es obligatorio.'
-    }
-)
-    notes          = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-
-    total          = serializers.DecimalField(max_digits=10, decimal_places=2)
-    items          = SaleItemInputSerializer(many=True)
+        choices=['efectivo', 'transferencia', 'tarjeta'],
+        required=True,
+        allow_blank=False,
+        error_messages={
+            'required': 'El método de pago es obligatorio.',
+            'blank': 'El método de pago no puede ir vacío.',
+            'invalid_choice': 'El método de pago es obligatorio.'
+        }
+    )
+    notes  = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    total  = serializers.DecimalField(max_digits=10, decimal_places=2)
+    items  = SaleItemInputSerializer(many=True)
 
     def validate_items(self, items):
         if len(items) == 0:
@@ -77,18 +75,18 @@ class SaleCreateSerializer(serializers.Serializer):
 
 # ── Output ─────────────────────────────────────────────────────────────────────
 
-
-
 class SaleItemOutputSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='product.name', read_only=True)
-    type         = serializers.CharField(source='product.type', read_only=True)
+    product_name = serializers.CharField(source='product.name',     read_only=True)
+    type         = serializers.CharField(source='product.type',     read_only=True)
+    # Categoría del producto — usado en la gráfica del panel
+    category     = serializers.CharField(source='product.category.name', read_only=True, allow_null=True)
 
     # Componentes del bundle — lista vacía si es producto simple
     components = serializers.SerializerMethodField()
 
     class Meta:
         model  = SaleItem
-        fields = ['id', 'product', 'product_name', 'type',
+        fields = ['id', 'product', 'product_name', 'type', 'category',
                   'quantity', 'unit_price', 'subtotal', 'components']
 
     def get_components(self, obj):
@@ -105,22 +103,23 @@ class SaleItemOutputSerializer(serializers.ModelSerializer):
         except Exception:
             return []
 
+
 class SaleOutputSerializer(serializers.ModelSerializer):
     """Devuelve una venta completa al frontend."""
     items         = SaleItemOutputSerializer(many=True, read_only=True)
-    customer_name = serializers.SerializerMethodField()  # resuelve nombre registrado o manual
+    customer_name = serializers.SerializerMethodField()
 
     class Meta:
         model  = Sale
         fields = [
             'id',
-            'customer',           # FK id (null si fue manual)
-            'customer_name',      # nombre resuelto
+            'customer',
+            'customer_name',
             'telephone', 'nit', 'address', 'contact_method',
             'payment_method', 'notes',
             'total', 'items', 'created_at',
         ]
 
     def get_customer_name(self, obj):
-        """Usa el método del modelo para resolver el nombre correcto."""
         return obj.get_customer_name()
+    
