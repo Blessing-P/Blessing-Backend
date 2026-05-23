@@ -20,8 +20,8 @@ class PurchasePlaceListCreateView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Lista todos los lugares activos."""
-        places = PurchasePlace.objects.filter(is_active=True).order_by('name')
+        """Lista todos los lugares (activos e inactivos)."""
+        places = PurchasePlace.objects.all().order_by('name')
         return Response(PurchasePlaceSerializer(places, many=True).data)
 
     def post(self, request):
@@ -53,13 +53,29 @@ class PurchasePlaceDetailView(APIView):
         serializer.save()
         return Response(serializer.data)
 
-    def delete(self, request, pk):
-        """Desactiva un lugar (soft delete)."""
+    def patch(self, request, pk):
+        """Activa o desactiva un lugar según el valor de is_active enviado."""
         place = self._get_object(pk)
         if not place:
             return Response({'detail': 'Lugar no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-        place.is_active = False
+        is_active = request.data.get('is_active')
+        if is_active is None:
+            return Response({'detail': 'El campo is_active es requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+        place.is_active = bool(is_active)
         place.save(update_fields=['is_active'])
+        return Response(PurchasePlaceSerializer(place).data)
+
+    def delete(self, request, pk):
+        """Elimina permanentemente un lugar. Solo permitido si ya está inactivo."""
+        place = self._get_object(pk)
+        if not place:
+            return Response({'detail': 'Lugar no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        if place.is_active:
+            return Response(
+                {'detail': 'Debes desactivar el lugar antes de eliminarlo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        place.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -69,8 +85,8 @@ class SupplierListCreateView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Lista todos los proveedores activos."""
-        suppliers = Supplier.objects.filter(is_active=True).order_by('name')
+        """Lista todos los proveedores (activos e inactivos)."""
+        suppliers = Supplier.objects.all().order_by('name')
         return Response(SupplierSerializer(suppliers, many=True).data)
 
     def post(self, request):
@@ -102,13 +118,29 @@ class SupplierDetailView(APIView):
         serializer.save()
         return Response(serializer.data)
 
-    def delete(self, request, pk):
-        """Desactiva un proveedor (soft delete)."""
+    def patch(self, request, pk):
+        """Activa o desactiva un proveedor según el valor de is_active enviado."""
         supplier = self._get_object(pk)
         if not supplier:
             return Response({'detail': 'Proveedor no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-        supplier.is_active = False
+        is_active = request.data.get('is_active')
+        if is_active is None:
+            return Response({'detail': 'El campo is_active es requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+        supplier.is_active = bool(is_active)
         supplier.save(update_fields=['is_active'])
+        return Response(SupplierSerializer(supplier).data)
+
+    def delete(self, request, pk):
+        """Elimina permanentemente un proveedor. Solo permitido si ya está inactivo."""
+        supplier = self._get_object(pk)
+        if not supplier:
+            return Response({'detail': 'Proveedor no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        if supplier.is_active:
+            return Response(
+                {'detail': 'Debes desactivar el proveedor antes de eliminarlo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        supplier.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -161,7 +193,6 @@ class PurchaseListCreateView(APIView):
         try:
             with transaction.atomic():
 
-                # Resolver supplier y place
                 supplier = None
                 place    = None
 
@@ -183,9 +214,6 @@ class PurchaseListCreateView(APIView):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
-                # BUG FIX: request.user puede ser AnonymousUser con AllowAny.
-                # Usamos el primer superuser disponible como fallback temporal
-                # hasta implementar autenticación real.
                 user = request.user if request.user.is_authenticated else None
                 if user is None:
                     from apps.accounts.models import User as AppUser
@@ -214,14 +242,11 @@ class PurchaseListCreateView(APIView):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
-                    # BUG FIX: no pasamos subtotal explícitamente — PurchaseDetail.save()
-                    # ya lo calcula. Pasarlo aquí era redundante y propenso a inconsistencias.
                     PurchaseDetail.objects.create(
                         purchase   = purchase,
                         item       = item,
                         quantity   = detail_data['quantity'],
                         unit_price = detail_data['unit_price'],
-                        # subtotal es calculado automáticamente por el modelo
                         subtotal   = detail_data['unit_price'] * detail_data['quantity'],
                     )
 
@@ -235,3 +260,4 @@ class PurchaseListCreateView(APIView):
                 {'detail': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        
