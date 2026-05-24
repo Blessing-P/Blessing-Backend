@@ -17,10 +17,12 @@ class SaleProductListView(APIView):
 
     def get(self, request):
         """Devuelve productos y bundles activos para agregar a una venta."""
-        items = Item.objects.filter(
-            is_activate=True,
-            type__in=['product', 'bundle'],
-        ).select_related('category').order_by('-created_at')  # ← agregar
+        items = (
+        Item.objects
+        .filter(is_activate=True, type__in=['product', 'bundle'])
+        .select_related('category')                          # category.name sin N+1
+        .order_by('-created_at')
+    )
 
         data = [
             {
