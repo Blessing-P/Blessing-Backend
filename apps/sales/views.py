@@ -71,7 +71,7 @@ class SaleListCreateView(APIView):
                 customer_id = data.get('customer_id')
                 if customer_id:
                     try:
-                        customer = Customer.objects.get(id=customer_id)
+                        customer = Customer.objects.get(id=customer_id, is_active=True)
                     except Customer.DoesNotExist:
                         return Response(
                             {'detail': 'El cliente seleccionado no existe.'},

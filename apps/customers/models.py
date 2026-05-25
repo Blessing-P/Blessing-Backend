@@ -9,6 +9,7 @@ class Customer(models.Model):
     nit        = models.CharField(max_length=20, blank=True, null=True)
     email      = models.EmailField(blank=True, null=True)
     address    = models.CharField(max_length=300, blank=True, null=True)
+    is_active  = models.BooleanField(default=True)          
 
     created_at = models.DateTimeField(auto_now_add=True)
 
