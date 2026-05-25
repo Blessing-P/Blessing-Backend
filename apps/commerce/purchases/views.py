@@ -150,7 +150,7 @@ class PurchaseItemListView(APIView):
     def get(self, request):
         items = (
             Item.objects
-            .filter(is_activate=True)
+            .filter(is_activate=True, type__in=['product', 'supply'])
             .select_related('unit')        # ← fix
             .order_by('name')
         )
