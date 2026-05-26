@@ -151,7 +151,7 @@ class PurchaseItemListView(APIView):
         items = (
             Item.objects
             .filter(is_activate=True, type__in=['product', 'supply'])
-            .select_related('unit')        # ← fix
+            .select_related('unit', 'category')   # 👈 agregar category
             .order_by('name')
         )
         data = [
@@ -163,6 +163,7 @@ class PurchaseItemListView(APIView):
                 'stock':          int(item.stock),
                 'purchase_price': float(item.purchase_price),
                 'image':          request.build_absolute_uri(item.image.url) if item.image else None,
+                'category_name':  item.category.name if item.category else None,
             }
             for item in items
         ]
