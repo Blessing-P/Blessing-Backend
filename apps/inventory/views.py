@@ -228,7 +228,14 @@ class ItemViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         item = self.get_object()
 
-        # """Protección: no eliminar si tiene historial de ventas"""
+        # Debe estar inactivo antes de eliminar
+        if item.is_activate:
+            return Response(
+                {'error': 'Debes desactivar el producto antes de eliminarlo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Protección: no eliminar si tiene historial de ventas
         if SaleItem.objects.filter(product=item).exists():
             return Response(
                 {'error': 'No se puede eliminar este producto porque tiene historial de ventas.'},
@@ -275,6 +282,20 @@ class ItemViewSet(viewsets.ModelViewSet):
             for detail in details
         ]
         return Response(materials)
+
+    @action(detail=True, methods=['patch'], url_path='toggle-active')
+    def toggle_active(self, request, pk=None):
+        """PATCH /api/items/{id}/toggle-active/  → activa o desactiva un item."""
+        item = self.get_object()
+        is_activate = request.data.get('is_activate')
+        if is_activate is None:
+            return Response(
+                {'detail': 'El campo is_activate es requerido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        item.is_activate = bool(is_activate)
+        item.save(update_fields=['is_activate'])
+        return Response(ItemSerializer(item).data)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
